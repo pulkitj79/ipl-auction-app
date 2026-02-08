@@ -14,8 +14,9 @@ h1, h2, h3 {
     background: linear-gradient(135deg, #1f2933, #111827);
     border-radius: 16px;
     padding: 32px;
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
-    border: 2px solid #f5c518;
+    border: 5px solid var(--team-color);
+    box-shadow: 0 0 40px var(--team-color);
+    transition: all 0.3s ease-in-out;
 }
 
 .player-name {
