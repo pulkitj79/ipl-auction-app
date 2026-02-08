@@ -13,8 +13,6 @@ def get_gsheet():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 
     client = gspread.authorize(creds)
-    files = client.list_spreadsheet_files()
-    print(files)
     
     sheet = client.open_by_key(
         "1qMuGvmyuzSaFIIExgVUQqghYwsoGNctPGnHx44_s1fY"
