@@ -56,11 +56,12 @@ if st.session_state.bidding_active:
     col1, col2 = st.columns([3, 2])
 
     with col1:
+        flash_class = "flash" if st.session_state.flash else ""
+
         st.markdown(
             f"""
-            <div class="player-card {'flash' if st.session_state.flash else ''}"
-     style="--team-color: {st.session_state.last_bid_team_color};">
-
+            <div class="player-card {flash_class}"
+                 style="--team-color: {st.session_state.last_bid_team_color};">
                 <div class="player-name">
                     {st.session_state.current_player['player_name']}
                 </div>
