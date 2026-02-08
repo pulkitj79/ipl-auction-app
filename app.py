@@ -19,6 +19,8 @@ if "bidding_active" not in st.session_state:
     st.session_state.current_player = None
     st.session_state.current_bid = 0
     st.session_state.current_team = None
+    st.session_state.last_bid_team_color = "#f5c518"
+    st.session_state.flash = False
 
 # ------------------ LOAD DATA ------------------
 players_df = read_sheet("Players")
