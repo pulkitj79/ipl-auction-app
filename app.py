@@ -1,6 +1,13 @@
 import streamlit as st
 from sheets import read_sheet
 
+def load_css():
+    with open("styles.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+load_css()
+
+
 st.set_page_config(
     page_title="IPL Auction",
     layout="wide"
