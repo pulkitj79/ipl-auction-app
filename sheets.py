@@ -16,7 +16,7 @@ def get_gsheet():
     files = client.list_spreadsheet_files()
     print(files)
 
-    sheet = client.open("https://docs.google.com/spreadsheets/d/1qMuGvmyuzSaFIIExgVUQqghYwsoGNctPGnHx44_s1fY/edit?usp=sharing")
+    sheet = client.open("https://docs.google.com/spreadsheets/d/1qMuGvmyuzSaFIIExgVUQqghYwsoGNctPGnHx44_s1fY/edit?gid=0#gid=0")
     return sheet
 
 
