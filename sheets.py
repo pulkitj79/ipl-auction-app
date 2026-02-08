@@ -15,8 +15,11 @@ def get_gsheet():
     client = gspread.authorize(creds)
     files = client.list_spreadsheet_files()
     print(files)
-
-    sheet = client.open("https://docs.google.com/spreadsheets/d/1qMuGvmyuzSaFIIExgVUQqghYwsoGNctPGnHx44_s1fY/edit?gid=0#gid=0")
+    
+    //sheet = client.open("https://docs.google.com/spreadsheets/d/1qMuGvmyuzSaFIIExgVUQqghYwsoGNctPGnHx44_s1fY/edit?gid=0#gid=0")
+    sheet = client.open_by_key(
+        "1qMuGvmyuzSaFIIExgVUQqghYwsoGNctPGnHx44_s1fY"
+    )
     return sheet
 
 
