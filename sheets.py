@@ -1,1 +1,25 @@
+import streamlit as st
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import pandas as pd
+
+def get_gsheet():
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+
+    creds_dict = dict(st.secrets["gcp_service_account"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+
+    client = gspread.authorize(creds)
+    sheet = client.open("IPL_Auction_DB")
+    return sheet
+
+
+def read_sheet(sheet_name):
+    sheet = get_gsheet()
+    ws = sheet.worksheet(sheet_name)
+    data = ws.get_all_records()
+    return pd.DataFrame(data)
 
