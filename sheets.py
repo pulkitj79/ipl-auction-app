@@ -13,7 +13,7 @@ def get_gsheet():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 
     client = gspread.authorize(creds)
-    sheet = client.open("IPL_Auction_DB")
+    sheet = client.open("https://docs.google.com/spreadsheets/d/1qMuGvmyuzSaFIIExgVUQqghYwsoGNctPGnHx44_s1fY/edit?usp=sharing")
     return sheet
 
 
