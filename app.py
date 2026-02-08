@@ -50,27 +50,53 @@ if st.button("🚀 Start Auction"):
 if st.session_state.bidding_active:
 
     st.markdown("---")
-    st.subheader("🔨 Live Auction")
 
-    col1, col2 = st.columns([2, 1])
+    col1, col2 = st.columns([3, 2])
 
     with col1:
-        st.markdown(f"## {st.session_state.current_player['player_name']}")
-        st.markdown(f"### Base Price: {st.session_state.current_player['base_price']}")
-        st.markdown(f"## 💰 Current Bid: {st.session_state.current_bid}")
+        st.markdown(
+            f"""
+            <div class="player-card">
+                <div class="player-name">
+                    {st.session_state.current_player['player_name']}
+                </div>
+                <div class="player-price">
+                    Base Price: {st.session_state.current_player['base_price']}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     with col2:
+        st.markdown(
+            f"""
+            <div class="bid-box">
+                <div>Current Bid</div>
+                <div class="current-bid">
+                    ₹ {st.session_state.current_bid}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         team = st.selectbox(
             "Bidding Team",
             teams_df["team_name"].tolist()
         )
 
-        if st.button("⬆️ Place Bid"):
+        if st.button("⬆️ PLACE BID"):
             st.session_state.current_team = team
             st.session_state.current_bid += 2
 
         if st.button("🔨 SOLD"):
-            st.success(
-                f"SOLD to {st.session_state.current_team} for {st.session_state.current_bid}"
+            st.markdown(
+                f"""
+                <div class="sold">
+                    SOLD to {st.session_state.current_team} for ₹ {st.session_state.current_bid}
+                </div>
+                """,
+                unsafe_allow_html=True
             )
             st.session_state.bidding_active = False
