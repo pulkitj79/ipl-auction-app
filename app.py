@@ -111,3 +111,4 @@ if st.session_state.bidding_active:
                 unsafe_allow_html=True
             )
             st.session_state.bidding_active = False
+            st.session_state.flash = False
