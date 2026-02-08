@@ -93,6 +93,8 @@ if st.session_state.bidding_active:
 
         if st.button("⬆️ PLACE BID"):
             st.session_state.current_team = team
+            st.caption(f"Last bid team color: {st.session_state.last_bid_team_color}")
+
 
             team_color = teams_df[
                 teams_df["team_name"] == team
