@@ -13,18 +13,20 @@ SCOPES = [
 ]
 
 def get_client():
+    sa = st.secrets["gcp_service_account"]
+
     creds = Credentials.from_service_account_info(
         {
             "type": "service_account",
-            "project_id": st.secrets["gcp"]["project_id"],
-            "private_key_id": st.secrets["gcp"]["private_key_id"],
-            "private_key": st.secrets["gcp"]["private_key"].replace("\\n", "\n"),
-            "client_email": st.secrets["gcp"]["client_email"],
-            "client_id": st.secrets["gcp"]["client_id"],
+            "project_id": sa["project_id"],
+            "private_key_id": sa["private_key_id"],
+            "private_key": sa["private_key"].replace("\\n", "\n"),
+            "client_email": sa["client_email"],
+            "client_id": sa["client_id"],
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
             "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": st.secrets["gcp"]["client_cert_url"],
+            "client_x509_cert_url": sa["client_cert_url"],
         },
         scopes=SCOPES,
     )
@@ -32,7 +34,7 @@ def get_client():
 
 def get_spreadsheet():
     client = get_client()
-    return client.open_by_key(st.secrets["gcp"]["sheet_id"])
+    return client.open_by_key(st.secrets["gcp_service_account"]["sheet_id"])
 
 # -------------------------------------------------
 # READ SHEET
