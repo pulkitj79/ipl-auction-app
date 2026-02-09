@@ -2,6 +2,8 @@ import streamlit as st
 
 from screens.projector import show_projector
 from screens.auctioneer import show_auctioneer  # already inline earlier
+from screens.bidder import show_bidder
+
 
 # -------------------------------------------------
 # PAGE CONFIG
@@ -19,6 +21,8 @@ if screen == "projector":
 elif screen == "auctioneer":
     show_auctioneer()
 
+elif creen == "bidder":
+    show_bidder()
 else:
     st.title("Auction App")
     st.caption("Landing screen coming soon.")
