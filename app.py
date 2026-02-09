@@ -13,10 +13,9 @@ st.set_page_config(
 )
 
 # -------------------------------------------------
-# ROUTING (NEW API – NOT EXPERIMENTAL)
+# ROUTING
 # -------------------------------------------------
-query_params = st.query_params
-screen = query_params.get("screen", "projector")
+screen = st.query_params.get("screen", "projector")
 
 # -------------------------------------------------
 # LOAD DATA HELPERS
@@ -46,12 +45,7 @@ def remaining_time(live):
 # -------------------------------------------------
 if screen == "projector":
 
-    # auto refresh every second (timer-safe)
-    st.query_params["screen"] = "projector"
-    time.sleep(1)
-    st.rerun()
-
-    # load sheets
+    # load sheets FIRST (important)
     players_df = read_sheet("Players")
     teams_df = read_sheet("Teams")
     live = load_live_auction()
@@ -165,7 +159,7 @@ if screen == "projector":
             unsafe_allow_html=True
         )
 
-    if live.get("status") == "UNSOLD":
+    elif live.get("status") == "UNSOLD":
         st.markdown(
             """
             <div style="
@@ -184,7 +178,7 @@ if screen == "projector":
     st.markdown("---")
 
     # -------------------------------------------------
-    # VIEWER MODALS (SESSION-LOCAL)
+    # VIEWER MODALS
     # -------------------------------------------------
     colA, colB, colC = st.columns(3)
 
@@ -215,11 +209,7 @@ if screen == "projector":
             with st.modal("Team Squads"):
                 for _, team in teams_df.iterrows():
                     st.markdown(
-                        f"""
-                        <h3 style="color:{team['team_color']};">
-                            {team['team_name']}
-                        </h3>
-                        """,
+                        f"<h3 style='color:{team['team_color']}'>{team['team_name']}</h3>",
                         unsafe_allow_html=True
                     )
 
@@ -237,8 +227,14 @@ if screen == "projector":
                             use_container_width=True
                         )
 
+    # -------------------------------------------------
+    # CONTROLLED AUTO-REFRESH (SAFE)
+    # -------------------------------------------------
+    time.sleep(1)
+    st.rerun()
+
 # -------------------------------------------------
-# FALLBACK (LANDING SCREEN LATER)
+# FALLBACK
 # -------------------------------------------------
 else:
     st.title("Auction App")
