@@ -1,40 +1,38 @@
 import streamlit as st
-from datetime import datetime, timezone
-from streamlit_autorefresh import st_autorefresh
 import streamlit.components.v1 as components
-
 from sheets import read_sheet
 
 # -------------------------------------------------
-# TIMER
-# -------------------------------------------------
-def remaining_time(live):
-    try:
-        start = float(live.get("timer_start_ts", 0))
-        duration = int(live.get("timer_duration", 0))
-        if start == 0:
-            return 0
-        now = datetime.now(timezone.utc).timestamp()
-        return max(0, int(duration - (now - start)))
-    except Exception:
-        return 0
-
-# -------------------------------------------------
-# PROJECTOR SCREEN
+# PROJECTOR SCREEN (EVENT DRIVEN)
 # -------------------------------------------------
 def show_projector():
 
-    # auto-refresh ONLY here
-    st_autorefresh(interval=1000, key="projector_refresh")
+    st.set_page_config(layout="wide")
 
-    # load data
-    players_df = read_sheet("Players")
-    teams_df = read_sheet("Teams")
+    # -------- Session State --------
+    st.session_state.setdefault("last_refresh_token", None)
+    st.session_state.setdefault("cached_live", None)
+
+    # -------- Manual Refresh Button (safe) --------
+    refresh_clicked = st.button("🔄 Refresh")
+
+    # -------- Read Live_Auction --------
     live_df = read_sheet("Live_Auction")
     live = dict(zip(live_df["key"], live_df["value"]))
+    token = live.get("refresh_token")
 
-    # derived
-    seconds_left = remaining_time(live)
+    # -------- Detect Change --------
+    if (
+        refresh_clicked
+        or st.session_state["last_refresh_token"] != token
+        or st.session_state["cached_live"] is None
+    ):
+        st.session_state["cached_live"] = live
+        st.session_state["last_refresh_token"] = token
+
+    live = st.session_state["cached_live"]
+
+    # -------- Derived Values --------
     team_color = live.get("leading_team_color") or "#f5c518"
 
     player_name = live.get("current_player_name") or "Waiting for Auction"
@@ -44,9 +42,7 @@ def show_projector():
     current_bid = live.get("current_bid") or "-"
     leading_team = live.get("leading_team") or "-"
 
-    # -------------------------------------------------
-    # HEADER
-    # -------------------------------------------------
+    # -------- Header --------
     st.markdown(
         f"<h1 style='text-align:center;'>🏏 {live.get('message','Live Auction')}</h1>",
         unsafe_allow_html=True
@@ -54,9 +50,7 @@ def show_projector():
 
     st.markdown("---")
 
-    # -------------------------------------------------
-    # MAIN DISPLAY (PURE HTML)
-    # -------------------------------------------------
+    # -------- Main UI (HTML, stable) --------
     html = f"""
     <div style="display:flex; gap:30px;">
 
@@ -65,18 +59,16 @@ def show_projector():
             border:6px solid {team_color};
             border-radius:18px;
             padding:30px;
-            background:linear-gradient(135deg,#1f2933,#111827);
-            box-shadow:0 0 40px {team_color};
+            background:#111827;
+            box-shadow:0 0 30px {team_color};
             color:white;
         ">
             <div style="font-size:42px;font-weight:900;">
                 {player_name}
             </div>
-
             <div style="font-size:22px;margin-top:10px;color:#f5c518;">
                 Pool: {pool} | Role: {role}
             </div>
-
             <div style="font-size:22px;margin-top:6px;">
                 Base Price: ₹ {base_price}
             </div>
@@ -84,10 +76,10 @@ def show_projector():
 
         <div style="
             flex:2;
-            background:#111827;
+            background:#0f172a;
             border-radius:16px;
             padding:30px;
-            border:2px solid #2d3748;
+            border:2px solid #334155;
             text-align:center;
             color:white;
         ">
@@ -95,7 +87,6 @@ def show_projector():
             <div style="font-size:54px;font-weight:900;color:#22c55e;">
                 ₹ {current_bid}
             </div>
-
             <div style="margin-top:12px;font-size:20px;">
                 Leading Team
             </div>
@@ -105,52 +96,12 @@ def show_projector():
         </div>
 
     </div>
-
-    <div style="text-align:center;margin-top:25px;font-size:36px;font-weight:800;">
-        ⏱ {seconds_left} sec
-    </div>
     """
 
-    components.html(html, height=380)
+    components.html(html, height=360)
 
-    # -------------------------------------------------
-    # SOLD / UNSOLD
-    # -------------------------------------------------
+    # -------- SOLD / UNSOLD --------
     if live.get("status") == "SOLD":
         st.success(f"SOLD to {leading_team} for ₹ {current_bid}")
-
     elif live.get("status") == "UNSOLD":
         st.error("UNSOLD")
-
-    st.markdown("---")
-
-    # -------------------------------------------------
-    # VIEWER MODALS
-    # -------------------------------------------------
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if st.button("📋 Sold Players"):
-            with st.modal("Sold Players"):
-                df = players_df[players_df["status"] == "SOLD"]
-                st.dataframe(df[["player_name","pool","role","sold_price","sold_to"]])
-
-    with col2:
-        if st.button("❌ Unsold Players"):
-            with st.modal("Unsold Players"):
-                df = players_df[players_df["status"] != "SOLD"]
-                st.dataframe(df[["player_name","pool","role","base_price"]])
-
-    with col3:
-        if st.button("🏏 Team Squads"):
-            with st.modal("Team Squads"):
-                for _, team in teams_df.iterrows():
-                    st.markdown(
-                        f"<h3 style='color:{team['team_color']}'>{team['team_name']}</h3>",
-                        unsafe_allow_html=True
-                    )
-                    squad = players_df[players_df["sold_to"] == team["team_name"]]
-                    if squad.empty:
-                        st.caption("No players yet")
-                    else:
-                        st.dataframe(squad[["player_name","role","sold_price"]])
