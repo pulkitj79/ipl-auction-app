@@ -21,7 +21,7 @@ if screen == "projector":
 elif screen == "auctioneer":
     show_auctioneer()
 
-elif creen == "bidder":
+elif screen == "bidder":
     show_bidder()
 else:
     st.title("Auction App")
