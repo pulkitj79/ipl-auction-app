@@ -1,15 +1,16 @@
 import streamlit as st
+import random
 from datetime import datetime, timezone
 from streamlit_autorefresh import st_autorefresh
 import streamlit.components.v1 as components
 
-from sheets import read_sheet
+from sheets import read_sheet, write_kv, update_row, append_row
 
 # -------------------------------------------------
 # PAGE CONFIG
 # -------------------------------------------------
 st.set_page_config(
-    page_title="Auction Projector",
+    page_title="Auction Control",
     layout="wide"
 )
 
@@ -19,12 +20,12 @@ st.set_page_config(
 screen = st.query_params.get("screen", "projector")
 
 # -------------------------------------------------
-# UI AUTO REFRESH (1 sec)
+# AUTO REFRESH (UI ONLY)
 # -------------------------------------------------
-st_autorefresh(interval=1000, key="projector_refresh")
+st_autorefresh(interval=1000, key="ui_refresh")
 
 # -------------------------------------------------
-# CACHED DATA LOADERS (RATE SAFE)
+# CACHED READS
 # -------------------------------------------------
 @st.cache_data(ttl=5)
 def load_players():
@@ -35,23 +36,175 @@ def load_teams():
     return read_sheet("Teams")
 
 @st.cache_data(ttl=3)
-def load_live_auction():
+def load_live():
     df = read_sheet("Live_Auction")
     return dict(zip(df["key"], df["value"]))
 
+@st.cache_data(ttl=30)
+def load_config_pool_rules():
+    return read_sheet("Config_Pool_Rules")
+
+@st.cache_data(ttl=60)
+def load_access_config():
+    return dict(zip(
+        read_sheet("Config_Access")["key"],
+        read_sheet("Config_Access")["value"]
+    ))
+
 # -------------------------------------------------
-# TIMER
+# TIMER UTILITY
 # -------------------------------------------------
-def remaining_time(live):
-    try:
-        start = float(live.get("timer_start_ts", 0))
-        duration = int(live.get("timer_duration", 0))
-        if start == 0:
-            return 0
-        now = datetime.now(timezone.utc).timestamp()
-        return max(0, int(duration - (now - start)))
-    except Exception:
-        return 0
+def utc_now():
+    return int(datetime.now(timezone.utc).timestamp())
+
+# =================================================
+# AUCTIONEER SCREEN
+# =================================================
+if screen == "auctioneer":
+
+    st.title("🎛 Auctioneer Control Panel")
+
+    # ---------------- AUTH ----------------
+    access = load_access_config()
+    pin_required = access.get("auctioneer_pin")
+
+    entered_pin = st.text_input(
+        "Enter Auctioneer PIN",
+        type="password"
+    )
+
+    if entered_pin != str(pin_required):
+        st.warning("Enter valid Auctioneer PIN")
+        st.stop()
+
+    # ---------------- LOAD DATA ----------------
+    players_df = load_players()
+    live = load_live()
+    pool_rules = load_config_pool_rules()
+
+    st.markdown("---")
+
+    # ---------------- POOL SELECTION ----------------
+    st.subheader("Pool Selection")
+
+    if not live.get("active_pool"):
+        pool = st.selectbox("Select Pool", ["A", "B", "FINAL"])
+
+        if st.button("🔒 Lock Pool"):
+            write_kv("Live_Auction", "active_pool", pool)
+            write_kv("Live_Auction", "status", "IDLE")
+            st.success(f"Pool {pool} locked")
+
+    else:
+        st.info(f"Active Pool: {live.get('active_pool')} (locked)")
+
+    st.markdown("---")
+
+    # ---------------- NEXT PLAYER ----------------
+    st.subheader("Next Player")
+
+    active_pool = live.get("active_pool")
+
+    if active_pool:
+        available = players_df[
+            (players_df["pool"] == active_pool) &
+            (players_df["status"] == "AVAILABLE")
+        ]
+
+        if available.empty:
+            st.warning("No players left in this pool")
+        else:
+            if st.button("🎲 Pick Random Player"):
+                player = available.sample(1).iloc[0]
+
+                rule = pool_rules[pool_rules["pool"] == active_pool].iloc[0]
+                timer_seconds = int(rule["timer_seconds"])
+
+                write_kv("Live_Auction", "current_player_id", player["player_id"])
+                write_kv("Live_Auction", "current_player_name", player["player_name"])
+                write_kv("Live_Auction", "pool", player["pool"])
+                write_kv("Live_Auction", "role", player["role"])
+                write_kv("Live_Auction", "image_url", player["image_url"])
+                write_kv("Live_Auction", "base_price", player["base_price"])
+                write_kv("Live_Auction", "current_bid", player["base_price"])
+                write_kv("Live_Auction", "leading_team", "")
+                write_kv("Live_Auction", "leading_team_color", "")
+                write_kv("Live_Auction", "bid_count", 0)
+                write_kv("Live_Auction", "timer_start_ts", utc_now())
+                write_kv("Live_Auction", "timer_duration", timer_seconds)
+                write_kv("Live_Auction", "no_bid_teams", "")
+                write_kv("Live_Auction", "status", "LIVE")
+                write_kv("Live_Auction", "message", "Bidding Open")
+
+                update_row(
+                    "Players",
+                    "player_id",
+                    player["player_id"],
+                    {"status": "IN_AUCTION"}
+                )
+
+                st.success(f"Auction started for {player['player_name']}")
+
+    st.markdown("---")
+
+    # ---------------- CLOSE AUCTION ----------------
+    st.subheader("Close Auction")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("🔨 SOLD"):
+            write_kv("Live_Auction", "status", "SOLD")
+            write_kv("Live_Auction", "message", "SOLD")
+
+            append_row("Auction_Log", {
+                "timestamp": utc_now(),
+                "player_id": live.get("current_player_id"),
+                "action": "SOLD",
+                "team_name": live.get("leading_team"),
+                "bid_amount": live.get("current_bid"),
+                "round": live.get("active_pool")
+            })
+
+            update_row(
+                "Players",
+                "player_id",
+                live.get("current_player_id"),
+                {
+                    "status": "SOLD",
+                    "sold_to": live.get("leading_team"),
+                    "sold_price": live.get("current_bid"),
+                    "round": live.get("active_pool")
+                }
+            )
+
+            st.success("Player SOLD")
+
+    with col2:
+        if st.button("❌ UNSOLD"):
+            write_kv("Live_Auction", "status", "UNSOLD")
+            write_kv("Live_Auction", "message", "UNSOLD")
+
+            update_row(
+                "Players",
+                "player_id",
+                live.get("current_player_id"),
+                {
+                    "status": "UNSOLD",
+                    "round": live.get("active_pool")
+                }
+            )
+
+            append_row("Auction_Log", {
+                "timestamp": utc_now(),
+                "player_id": live.get("current_player_id"),
+                "action": "UNSOLD",
+                "team_name": "",
+                "bid_amount": "",
+                "round": live.get("active_pool")
+            })
+
+            st.warning("Player UNSOLD")
 
 # -------------------------------------------------
 # PROJECTOR SCREEN
