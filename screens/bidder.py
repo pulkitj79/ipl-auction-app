@@ -26,7 +26,7 @@ def show_bidder():
     team_name = st.selectbox("Select Your Team", team_names)
 
     team = teams_df[teams_df["team_name"] == team_name].iloc[0]
-    pin_required = str(team["pin"])
+    pin_required = str(team["team_pin"])
 
     entered_pin = st.text_input("Enter Team PIN", type="password")
 
