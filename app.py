@@ -13,10 +13,10 @@ st.set_page_config(
 )
 
 # -------------------------------------------------
-# ROUTING
+# ROUTING (NEW API – NOT EXPERIMENTAL)
 # -------------------------------------------------
-query_params = st.experimental_get_query_params()
-screen = query_params.get("screen", ["projector"])[0]
+query_params = st.query_params
+screen = query_params.get("screen", "projector")
 
 # -------------------------------------------------
 # LOAD DATA HELPERS
@@ -46,10 +46,10 @@ def remaining_time(live):
 # -------------------------------------------------
 if screen == "projector":
 
-    # auto refresh every second (needed for timer)
-    st.experimental_set_query_params(screen="projector")
+    # auto refresh every second (timer-safe)
+    st.query_params["screen"] = "projector"
     time.sleep(1)
-    st.experimental_rerun()
+    st.rerun()
 
     # load sheets
     players_df = read_sheet("Players")
@@ -184,7 +184,7 @@ if screen == "projector":
     st.markdown("---")
 
     # -------------------------------------------------
-    # VIEWER MODALS (LOCAL ONLY)
+    # VIEWER MODALS (SESSION-LOCAL)
     # -------------------------------------------------
     colA, colB, colC = st.columns(3)
 
@@ -238,7 +238,7 @@ if screen == "projector":
                         )
 
 # -------------------------------------------------
-# FALLBACK
+# FALLBACK (LANDING SCREEN LATER)
 # -------------------------------------------------
 else:
     st.title("Auction App")
